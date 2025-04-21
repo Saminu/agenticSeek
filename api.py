@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from dotenv import load_dotenv
 
 from sources.llm_provider import Provider
 from sources.interaction import Interaction
@@ -23,8 +24,14 @@ from sources.schemas import QueryRequest, QueryResponse
 
 from celery import Celery
 
+# Load environment variables
+load_dotenv()
+
 api = FastAPI(title="AgenticSeek API", version="0.1.0")
-celery_app = Celery("tasks", broker="redis://localhost:6379/0", backend="redis://localhost:6379/0")
+
+# Get Redis URL from environment variable or use default
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+celery_app = Celery("tasks", broker=redis_url, backend=redis_url)
 celery_app.conf.update(task_track_started=True)
 logger = Logger("backend.log")
 config = configparser.ConfigParser()
@@ -90,14 +97,77 @@ def initialize_system():
     ]
     logger.info("Agents initialized")
 
-    interaction = Interaction(
-        agents,
-        tts_enabled=config.getboolean('MAIN', 'speak'),
-        stt_enabled=config.getboolean('MAIN', 'listen'),
-        recover_last_session=config.getboolean('MAIN', 'recover_last_session'),
-        langs=languages
-    )
-    logger.info("Interaction initialized")
+    # Create a simple Interaction class with a basic router
+    class SimpleInteraction:
+        def __init__(self, agents):
+            self.is_active = True
+            self.current_agent = agents[0]  # Use the first agent by default
+            self.last_query = None
+            self.last_answer = None
+            self.agents = agents
+            self.ai_name = "Friday"
+            self.is_generating = False
+            self.last_success = True
+
+        def select_agent(self, query):
+            # Simple keyword-based routing
+            query = query.lower()
+
+            # Coding related keywords
+            if any(keyword in query for keyword in ['code', 'program', 'function', 'class', 'bug', 'debug', 'fix', 'error', 'python', 'javascript', 'java', 'c++', 'programming', 'game', 'snake', 'build']):
+                for agent in self.agents:
+                    if agent.type == "coder_agent":
+                        pretty_print(f"Selected agent: {agent.agent_name} (roles: {agent.role})", color="warning")
+                        return agent
+
+            # File related keywords
+            if any(keyword in query for keyword in ['file', 'folder', 'directory', 'path', 'save', 'open', 'read', 'write', 'find file']):
+                for agent in self.agents:
+                    if agent.type == "file_agent":
+                        pretty_print(f"Selected agent: {agent.agent_name} (roles: {agent.role})", color="warning")
+                        return agent
+
+            # Browser related keywords
+            if any(keyword in query for keyword in ['browse', 'web', 'search', 'internet', 'website', 'url', 'link', 'page', 'browser']):
+                for agent in self.agents:
+                    if agent.type == "browser_agent":
+                        pretty_print(f"Selected agent: {agent.agent_name} (roles: {agent.role})", color="warning")
+                        return agent
+
+            # Complex task keywords
+            if any(keyword in query for keyword in ['plan', 'complex', 'multi-step', 'project', 'organize', 'strategy']):
+                for agent in self.agents:
+                    if agent.type == "planner_agent":
+                        pretty_print(f"Selected agent: {agent.agent_name} (roles: {agent.role})", color="warning")
+                        return agent
+
+            # Default to casual agent
+            for agent in self.agents:
+                if agent.type == "casual_agent":
+                    pretty_print(f"Selected agent: {agent.agent_name} (roles: {agent.role})", color="warning")
+                    return agent
+
+            # If no casual agent, use the first agent
+            pretty_print(f"Selected agent: {self.agents[0].agent_name} (roles: {self.agents[0].role})", color="warning")
+            return self.agents[0]
+
+        async def process(self, query):
+            self.last_query = query
+            self.is_generating = True
+
+            # Select the appropriate agent based on the query
+            self.current_agent = self.select_agent(query)
+
+            self.last_answer, _ = await self.current_agent.process(query, None)
+            self.is_generating = False
+            return self.last_answer
+
+        def save_session(self):
+            pass
+
+    # Use SimpleInteraction instead of the regular Interaction
+    interaction = SimpleInteraction(agents)
+    logger.info("Simple Interaction with basic router initialized")
     return interaction
 
 interaction = initialize_system()
@@ -132,12 +202,28 @@ async def get_latest_answer():
     if interaction.current_agent is None:
         return JSONResponse(status_code=404, content={"error": "No agent available"})
     if interaction.current_agent.last_answer not in [q["answer"] for q in query_resp_history]:
+        # Get blocks from the agent and convert to dictionary
+        blocks_result = interaction.current_agent.get_blocks_result()
+        blocks_dict = {}
+
+        # Debug log
+        logger.info(f"Number of blocks: {len(blocks_result)}")
+
+        # Convert each block to a dictionary
+        for i, block in enumerate(blocks_result):
+            try:
+                block_dict = block.jsonify()
+                blocks_dict[str(i)] = block_dict
+                logger.info(f"Block {i}: {block_dict}")
+            except Exception as e:
+                logger.error(f"Error converting block {i} to dictionary: {str(e)}")
+
         query_resp = {
             "done": "false",
             "answer": interaction.current_agent.last_answer,
             "agent_name": interaction.current_agent.agent_name if interaction.current_agent else "None",
             "success": interaction.current_agent.success,
-            "blocks": {f'{i}': block.jsonify() for i, block in enumerate(interaction.current_agent.get_blocks_result())} if interaction.current_agent else {},
+            "blocks": blocks_dict,
             "status": interaction.current_agent.get_status_message if interaction.current_agent else "No status available",
             "timestamp": str(time.time())
         }
@@ -147,18 +233,35 @@ async def get_latest_answer():
         return JSONResponse(status_code=200, content=query_resp_history[-1])
     return JSONResponse(status_code=404, content={"error": "No answer available"})
 
-async def think_wrapper(interaction, query, tts_enabled):
+@api.post("/clear_chat")
+async def clear_chat():
+    global query_resp_history
+    logger.info("Clearing chat history")
+
+    # Clear the query response history
+    query_resp_history = []
+
+    # Reset the agent's last answer
+    if interaction.current_agent:
+        interaction.current_agent.last_answer = None
+        interaction.last_answer = None
+
+    return JSONResponse(
+        status_code=200,
+        content={"status": "success", "message": "Chat history cleared"}
+    )
+
+async def think_wrapper(interaction, query, tts_enabled=None):
     try:
-        interaction.tts_enabled = tts_enabled
-        interaction.last_query = query
         logger.info("Agents request is being processed")
-        success = await interaction.think()
-        if not success:
+        answer = await interaction.process(query)
+        if not answer:
             interaction.last_answer = "Error: No answer from agent"
             interaction.last_success = False
+            return False
         else:
             interaction.last_success = True
-        return success
+            return True
     except Exception as e:
         logger.error(f"Error in think_wrapper: {str(e)}")
         interaction.last_answer = f"Error: {str(e)}"
@@ -172,7 +275,7 @@ async def process_query(request: QueryRequest):
     query_resp = QueryResponse(
         done="false",
         answer="",
-        agent_name="Unknown",
+        agent_name="Friday",
         success="false",
         blocks={},
         status="Ready",
@@ -192,7 +295,21 @@ async def process_query(request: QueryRequest):
             return JSONResponse(status_code=400, content=query_resp.jsonify())
 
         if interaction.current_agent:
-            blocks_json = {f'{i}': block.jsonify() for i, block in enumerate(interaction.current_agent.get_blocks_result())}
+            # Get blocks from the agent and convert to dictionary
+            blocks_result = interaction.current_agent.get_blocks_result()
+            blocks_json = {}
+
+            # Debug log
+            logger.info(f"Number of blocks in query response: {len(blocks_result)}")
+
+            # Convert each block to a dictionary
+            for i, block in enumerate(blocks_result):
+                try:
+                    block_dict = block.jsonify()
+                    blocks_json[str(i)] = block_dict
+                    logger.info(f"Query block {i}: {block_dict}")
+                except Exception as e:
+                    logger.error(f"Error converting query block {i} to dictionary: {str(e)}")
         else:
             logger.error("No current agent found")
             blocks_json = {}
@@ -206,7 +323,7 @@ async def process_query(request: QueryRequest):
         query_resp.agent_name = interaction.current_agent.agent_name
         query_resp.success = str(interaction.last_success)
         query_resp.blocks = blocks_json
-        
+
         # Store the raw dictionary representation
         query_resp_dict = {
             "done": query_resp.done,

@@ -109,7 +109,6 @@ body {
 }
 
 .task-section h2,
-.chat-section h2,
 .computer-section h2 {
   font-size: 1.1rem;
   font-weight: 600;
@@ -118,6 +117,43 @@ body {
   letter-spacing: 0.5px;
   border-bottom: 1px solid #334155; /* darkBorder */
   padding-bottom: 8px;
+}
+
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #334155; /* darkBorder */
+  padding-bottom: 8px;
+}
+
+.chat-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #cbd5e1; /* darkTextSecondary */
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.clear-chat-btn {
+  background-color: #2d3748; /* Slightly lighter than darkCard */
+  color: #cbd5e1; /* darkTextSecondary */
+  border: 1px solid #4a5568; /* Medium gray */
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-chat-btn:hover {
+  background-color: #4a5568; /* Medium gray */
+  color: #f8fafc; /* darkText */
+}
+
+.clear-chat-btn:active {
+  transform: translateY(1px);
 }
 
 .task-details {
@@ -328,6 +364,11 @@ body {
   cursor: not-allowed;
 }
 
+.test-button {
+  background-color: #553c9a !important; /* Purple */
+  color: #f8fafc !important; /* White text */
+}
+
 .content {
   flex: 1;
   overflow-y: auto;
@@ -383,6 +424,10 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: 200px;
+  background-color: #2d3748; /* Slightly lighter than darkCard */
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .screenshot img {
@@ -390,6 +435,25 @@ body {
   border: 1px solid #4a5568; /* Medium gray */
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.screenshot-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  background-color: #2d3748; /* Slightly lighter than darkCard */
+  color: #cbd5e1; /* darkTextSecondary */
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
 .error {
@@ -470,10 +534,15 @@ body {
   }
 
   .task-section h2,
-  .chat-section h2,
+  .chat-header h2,
   .computer-section h2 {
     font-size: 1rem;
     margin-bottom: 8px;
     padding-bottom: 6px;
+  }
+
+  .clear-chat-btn {
+    font-size: 0.7rem;
+    padding: 3px 6px;
   }
 }

@@ -40,7 +40,7 @@ https://github.com/user-attachments/assets/4bd5faf6-459f-4f94-bd1d-238c4b331469
 
 - **Autonomous Web Browsing**: Autonomous web navigation.
 
-- **Memory**: Efficient memory and sessions management. 
+- **Memory**: Efficient memory and sessions management.
 
 ---
 
@@ -62,7 +62,7 @@ mv .env.example .env
 
 ```sh
 python3 -m venv agentic_seek_env
-source agentic_seek_env/bin/activate     
+source agentic_seek_env/bin/activate
 # On Windows: agentic_seek_env\Scripts\activate
 ```
 
@@ -89,7 +89,7 @@ python3 setup.py install
 **We recommend using at the very least Deepseek 14B, smaller models will struggle with tasks especially for web browsing.**
 
 
-**Setup your local provider**  
+**Setup your local provider**
 
 Start your local provider, for example with ollama:
 
@@ -122,7 +122,7 @@ provider_server_address = 127.0.0.1:11434
 | openai    | Yes     |  Use openai compatible API  |
 
 
-Next step: [Start services and run AgenticSeek](#Start-services-and-Run)  
+Next step: [Start services and run AgenticSeek](#Start-services-and-Run)
 
 *See the **Known issues** section if you are having issues*
 
@@ -160,9 +160,32 @@ Next step: [Start services and run AgenticSeek](#Start-services-and-Run)
 
 ## Start services and Run
 
+### New simplified method (recommended)
+
+We've created new run scripts that handle everything for you - starting Docker services, activating the Python environment, and launching the backend:
+
+```sh
+# On macOS/Linux
+./run.sh
+
+# On Windows
+run.cmd
+```
+
+This will:
+1. Check and activate your Python virtual environment
+2. Start all Docker services (frontend, Redis, SearXNG)
+3. Launch the backend service on your host machine
+4. Provide access to the web interface at http://localhost:3000
+
+### Manual method
+
+If you prefer to start services manually:
+
 Activate your python env if needed.
 ```sh
 source agentic_seek_env/bin/activate
+# On Windows: agentic_seek_env\Scripts\activate
 ```
 
 Start required services. This will start all services from the docker-compose.yml, including:
@@ -171,8 +194,8 @@ Start required services. This will start all services from the docker-compose.ym
     - frontend
 
 ```sh
-sudo ./start_services.sh # MacOS
-start ./start_services.cmd # Window
+sudo ./start_services.sh # MacOS/Linux
+start ./start_services.cmd # Windows
 ```
 
 **Options 1:** Run with the CLI interface.
@@ -199,11 +222,28 @@ Please note that the Web interface doesn't stream messages at the moment.
 
 ## Usage
 
-Make sure the services are up and running with `./start_services.sh` and run the AgenticSeek with `python3 main.py`
+You can start all services and run AgenticSeek with our new simplified run scripts:
 
 ```sh
-sudo ./start_services.sh
+# On macOS/Linux
+./run.sh
+
+# On Windows
+run.cmd
+```
+
+Or if you prefer the manual method:
+
+```sh
+# Start services
+sudo ./start_services.sh  # On macOS/Linux
+start ./start_services.cmd  # On Windows
+
+# Run CLI interface
 python3 cli.py
+
+# Or run Web interface
+python3 api.py  # Then visit http://localhost:3000
 ```
 
 You will be prompted with `>>> `
@@ -261,9 +301,9 @@ Instead, ask:
 
 ---
 
-## **Bonus: Setup to run the LLM on your own server**  
+## **Bonus: Setup to run the LLM on your own server**
 
-If you have a powerful computer or a server that you can use, but you want to use it from your laptop you have the options to run the LLM on a remote server. 
+If you have a powerful computer or a server that you can use, but you want to use it from your laptop you have the options to run the LLM on a remote server.
 
 On your "server" that will run the AI model, get the ip address
 
@@ -311,7 +351,7 @@ provider_server_address = x.x.x.x:3333
 ```
 
 
-Next step: [Start services and run AgenticSeek](#Start-services-and-Run)  
+Next step: [Start services and run AgenticSeek](#Start-services-and-Run)
 
 ---
 
@@ -451,7 +491,7 @@ If this section is incomplete please raise an issue.
 
 ## FAQ
 
-**Q: What hardware do I need?**  
+**Q: What hardware do I need?**
 
 | Model Size  | GPU  | Comment                                               |
 |-----------|--------|-----------------------------------------------------------|
@@ -460,15 +500,15 @@ If this section is incomplete please raise an issue.
 | 32B        | 24+ GB VRAM (e.g. RTX 4090) | 🚀 Success with most tasks, might still struggle with task planning |
 | 70B+        | 48+ GB Vram (eg. mac studio) | 💪 Excellent. Recommended for advanced use cases. |
 
-**Q: Why Deepseek R1 over other models?**  
+**Q: Why Deepseek R1 over other models?**
 
 Deepseek R1 excels at reasoning and tool use for its size. We think it’s a solid fit for our needs other models work fine, but Deepseek is our primary pick.
 
-**Q: I get an error running `cli.py`. What do I do?**  
+**Q: I get an error running `cli.py`. What do I do?**
 
 Ensure local is running (`ollama serve`), your `config.ini` matches your provider, and dependencies are installed. If none work feel free to raise an issue.
 
-**Q: Can it really run 100% locally?**  
+**Q: Can it really run 100% locally?**
 
 Yes with Ollama, lm-studio or server providers, all speech to text, LLM and text to speech model run locally. Non-local options (OpenAI or others API) are optional.
 
@@ -488,4 +528,4 @@ We’re looking for developers to improve AgenticSeek! Check out open issues or 
 
 ## Maintainers:
  > [Fosowl](https://github.com/Fosowl)
- > [steveh8758](https://github.com/steveh8758) 
+ > [steveh8758](https://github.com/steveh8758)
