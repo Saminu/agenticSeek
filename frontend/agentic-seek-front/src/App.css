@@ -201,6 +201,7 @@ body {
   flex-direction: column;
   gap: 12px;
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .placeholder {
@@ -217,6 +218,9 @@ body {
   font-size: 0.95rem;
   line-height: 1.5;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
 
 .messages::-webkit-scrollbar,
@@ -253,6 +257,7 @@ body {
   color: #f8fafc; /* darkText */
   align-self: flex-start;
   border-top-left-radius: 4px;
+  max-width: 90%;
 }
 
 .error-message {
@@ -268,6 +273,15 @@ body {
   color: #cbd5e1; /* darkTextSecondary */
   margin-bottom: 4px;
   font-weight: 500;
+}
+
+.message-content {
+  width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 500px;
 }
 
 .loading-animation {

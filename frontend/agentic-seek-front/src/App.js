@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './App.css';
-import { colors } from './colors';
 
 function App() {
     // Input state
@@ -133,27 +132,32 @@ function App() {
             // Generate a consistent message ID based on content and timestamp
             const messageId = `msg-${data.timestamp}-${normalizeAnswer(data.answer).substring(0, 20).replace(/\s+/g, '-')}`;
 
-            // Skip if we've already processed this message ID
+            // Enhanced deduplication logic
+            // 1. Check if we've already processed this exact message ID
             if (processedMessageIdsRef.current.has(messageId)) {
+                console.log('Skipping duplicate message ID:', messageId);
                 return;
             }
 
-            // Skip if we've already processed this timestamp
+            // 2. Check if we've already processed this timestamp
             if (lastProcessedTimestampRef.current === data.timestamp) {
+                console.log('Skipping duplicate timestamp:', data.timestamp);
                 return;
             }
 
-            // More robust deduplication check
+            // 3. More robust deduplication check against existing messages
             const answerExists = messages.some(msg => {
                 // Check if this exact message (by timestamp) already exists
                 if (msg.timestamp === data.timestamp) {
+                    console.log('Duplicate timestamp detected in messages array');
                     return true;
                 }
 
                 // Also check content similarity for messages without timestamps
-                // or in case of timestamp issues
+                // or in case of timestamp issues - use a more strict comparison
                 if (msg.type === 'agent' &&
                     normalizeAnswer(msg.content) === normalizeAnswer(data.answer)) {
+                    console.log('Duplicate content detected in messages array');
                     return true;
                 }
 
@@ -167,6 +171,8 @@ function App() {
             }
 
             if (!answerExists) {
+                console.log('Adding new message with ID:', messageId);
+
                 // Update the last processed timestamp and add to processed IDs
                 lastProcessedTimestampRef.current = data.timestamp;
                 processedMessageIdsRef.current.add(messageId);
@@ -188,7 +194,20 @@ function App() {
                     blocks: data.blocks || {}
                 }));
 
-                setMessages(prev => [...prev, newMessage]);
+                // Add the message to the messages array
+                setMessages(prev => {
+                    // Double-check that this message doesn't already exist in the array
+                    const isDuplicate = prev.some(msg => msg.id === messageId ||
+                        (msg.type === 'agent' && normalizeAnswer(msg.content) === normalizeAnswer(data.answer)));
+
+                    if (isDuplicate) {
+                        console.log('Prevented duplicate message from being added');
+                        return prev;
+                    }
+
+                    return [...prev, newMessage];
+                });
+
                 setStatus(data.status || 'Processing');
 
                 // Clear any previous message errors
@@ -422,7 +441,7 @@ function App() {
                                         {msg.type === 'agent' && (
                                             <span className="agent-name">{msg.agentName}</span>
                                         )}
-                                        <p>{msg.content}</p>
+                                        <div className="message-content">{msg.content}</div>
                                     </div>
                                 ))
                             )}

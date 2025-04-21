@@ -66,33 +66,33 @@ services:
     networks:
       - agentic-seek-net
 
-  # Backend service is commented out for now
-  # backend:
-  #   container_name: backend
-  #   build:
-  #     context: ./
-  #     dockerfile: Dockerfile.backend
-  #   stdin_open: true
-  #   tty: true
-  #   shm_size: 8g
-  #   ports:
-  #     - "8000:8000"
-  #   volumes:
-  #     - ./screenshots:/app/screenshots
-  #     - ./config.ini:/app/config.ini
-  #     - ./.env:/app/.env
-  #   environment:
-  #     - REDIS_URL=redis://redis:6379/0
-  #     - SEARXNG_BASE_URL=http://searxng:8080
-  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
-  #     - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-  #   extra_hosts:
-  #     - "host.docker.internal:host-gateway"
-  #   depends_on:
-  #     - redis
-  #     - searxng
-  #   networks:
-  #     - agentic-seek-net
+  # Backend service
+  backend:
+    container_name: backend
+    build:
+      context: ./
+      dockerfile: Dockerfile.backend
+    stdin_open: true
+    tty: true
+    shm_size: 8g
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./screenshots:/app/screenshots
+      - ./config.ini:/app/config.ini
+      - ./.env:/app/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SEARXNG_BASE_URL=http://searxng:8080
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+      - searxng
+    networks:
+      - agentic-seek-net
 
 volumes:
   redis-data:
